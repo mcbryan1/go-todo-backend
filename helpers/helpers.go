@@ -113,11 +113,12 @@ func CheckPassword(user models.User, password string) error {
 func ValidateRequest(req map[string]interface{}, req_type string) error {
 	var requiredFields []string
 
-	if req_type == "User" {
+	switch req_type {
+	case "User":
 		requiredFields = []string{"email", "password", "username"}
-	} else if req_type == "Todo" {
-		requiredFields = []string{"title", "description"}
-	} else {
+	case "Todo":
+		requiredFields = []string{"title"}
+	default:
 		return fmt.Errorf("invalid request type")
 	}
 
@@ -126,8 +127,7 @@ func ValidateRequest(req map[string]interface{}, req_type string) error {
 			return fmt.Errorf("%s is required", field)
 		}
 		// Trim whitespace from the field value if it's a string
-		strVal, ok := req[field].(string)
-		if ok {
+		if strVal, ok := req[field].(string); ok {
 			strVal = strings.TrimSpace(strVal)
 			if strVal == "" {
 				return fmt.Errorf("%s cannot be empty", field)
@@ -136,14 +136,17 @@ func ValidateRequest(req map[string]interface{}, req_type string) error {
 		}
 	}
 
-	// Validate Email
-	email, ok := req["email"].(string)
-	if !ok || !IsEmailValid(email) {
-		return fmt.Errorf("invalid email")
+	// Additional validation for User type
+	if req_type == "User" {
+		email, ok := req["email"].(string)
+		if !ok || !IsEmailValid(email) {
+			return fmt.Errorf("invalid email")
+		}
 	}
 
 	return nil
 }
+
 func IsEmailValid(email string) bool {
 	emailRegex := `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`
 	match := regexp.MustCompile(emailRegex).MatchString
