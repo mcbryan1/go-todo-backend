@@ -68,6 +68,20 @@ func RespondWithError(c *gin.Context, code int, message interface{}, resCode str
 	c.AbortWithStatusJSON(code, gin.H{"resp_desc": message, "resp_code": resCode})
 }
 
+func GetUserIDFromContext(c *gin.Context) (string, bool, error) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		return "", false, nil
+	}
+
+	typedUserID, ok := userID.(string)
+	if !ok {
+		return "", false, fmt.Errorf("failed to retrieve user ID from context")
+	}
+
+	return typedUserID, true, nil
+}
+
 func RespondWithSuccess(c *gin.Context, code int, message interface{}, respCode string, data ...interface{}) {
 	response := struct {
 		RespCode string      `json:"resp_code"`

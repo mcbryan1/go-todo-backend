@@ -20,3 +20,18 @@ func CreateTodoResponse(todo models.Todo) map[string]interface{} {
 		"created_at": todo.CreatedAt,
 	}
 }
+
+func CreateTodoResponses(todos []models.Todo) []map[string]interface{} {
+	var responses []map[string]interface{}
+	for _, todo := range todos {
+		response := map[string]interface{}{
+			"id":          todo.ID,
+			"title":       todo.Title,
+			"description": todo.Description,
+			"completed":   todo.Completed,
+			"created_at":  todo.CreatedAt,
+		}
+		responses = append(responses, response)
+	}
+	return responses
+}

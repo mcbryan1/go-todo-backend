@@ -10,27 +10,25 @@ import (
 )
 
 func GetTodos(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		helpers.RespondWithError(c, http.StatusUnauthorized, "User not authenticated", "401")
+	userID, ok, err := helpers.GetUserIDFromContext(c)
+	if !ok || err != nil {
+		if err == nil { // No specific error, assume unauthorized
+			helpers.RespondWithError(c, http.StatusUnauthorized, "User not authenticated", "401")
+		} else {
+			helpers.RespondWithError(c, http.StatusInternalServerError, err.Error(), "500")
+		}
 		return
 	}
 
 	var todos []models.Todo
-	typedUserID, ok := userID.(string)
-	if !ok {
-		helpers.RespondWithError(c, http.StatusInternalServerError, "Failed to retrieve user ID from context", "500")
-		return
-	}
-
-	result := initializers.DB.Where("user_id = ?", typedUserID).Find(&todos)
+	result := initializers.DB.Where("user_id = ?", userID).Find(&todos)
 
 	if result.Error != nil {
 		helpers.RespondWithError(c, http.StatusBadRequest, result.Error, "001")
 		return
 	}
-
-	helpers.RespondWithSuccess(c, http.StatusOK, "Todos retrieved successfully", "000", todos)
+	todoResponse := helpers.CreateTodoResponses(todos)
+	helpers.RespondWithSuccess(c, http.StatusOK, "Todos retrieved successfully", "000", todoResponse)
 }
 
 func CreateTodo(c *gin.Context) {
@@ -63,7 +61,7 @@ func CreateTodo(c *gin.Context) {
 		UserID:      typedUserIDStr,
 		Title:       requestBody.Title,
 		Description: requestBody.Description,
-		Completed:   false, // Set default value if not provided
+		Completed:   false,
 	}
 
 	// Save the new todo to the database
