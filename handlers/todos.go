@@ -139,3 +139,42 @@ func EditTodo(c *gin.Context) {
 	todoResponse := helpers.CreateTodoResponse(todo)
 	helpers.RespondWithSuccess(c, http.StatusOK, "Todo updated successfully", "000", todoResponse)
 }
+
+func DeleteTodo(c *gin.Context) {
+	userID, ok, err := helpers.GetUserIDFromContext(c)
+	if !ok || err != nil {
+		if err == nil {
+			helpers.RespondWithError(c, http.StatusUnauthorized, "User not authenticated", "401")
+		} else {
+			helpers.RespondWithError(c, http.StatusInternalServerError, err.Error(), "500")
+		}
+		return
+	}
+
+	// Extract Todo ID from the URL parameter
+	todoID := c.Param("id")
+	if todoID == "" {
+		helpers.RespondWithError(c, http.StatusBadRequest, "Todo ID is required", "001")
+		return
+	}
+
+	// Find the todo item in the database
+	var todo models.Todo
+	result := initializers.DB.First(&todo, "id = ? AND user_id = ?", todoID, userID)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			helpers.RespondWithError(c, http.StatusNotFound, "Todo not found or not authorized", "001")
+		} else {
+			helpers.RespondWithError(c, http.StatusInternalServerError, result.Error.Error(), "001")
+		}
+		return
+	}
+
+	result = initializers.DB.Delete(&todo)
+	if result.Error != nil {
+		helpers.RespondWithError(c, http.StatusInternalServerError, result.Error.Error(), "001")
+		return
+	}
+
+	helpers.RespondWithSuccess(c, http.StatusOK, "Todo deleted successfully", "000", nil)
+}
